@@ -3,6 +3,7 @@ import type { Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { RotateCcw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useHiddenClickUnlock } from '@/hooks/use-hidden-click-unlock'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -59,6 +60,7 @@ function normalizeValue(value: unknown): string {
 export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
   const { t } = useTranslation()
   const updateOption = useUpdateOption()
+  const frontendThemeUnlock = useHiddenClickUnlock({ requiredClicks: 3 })
 
   const normalizedDefaults: SystemInfoFormValues = {
     theme: {
@@ -125,41 +127,47 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
 
       <SettingsSection
         title={t('System Information')}
+        titleProps={{
+          className: 'cursor-pointer select-none',
+          onClick: frontendThemeUnlock.handleClick,
+        }}
         description={t('Configure basic system information and branding')}
       >
         <Form {...form}>
           <form onSubmit={handleSubmit} className='space-y-6'>
             <FormDirtyIndicator isDirty={isDirty} />
-            <FormField
-              control={form.control}
-              name='theme.frontend'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('Frontend Theme')}</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger className='w-full'>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value='default'>
-                        {t('Default (New Frontend)')}
-                      </SelectItem>
-                      <SelectItem value='classic'>
-                        {t('Classic (Legacy Frontend)')}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    {t(
-                      'Switch between the new frontend and the classic frontend. Changes take effect after page reload.'
-                    )}
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {frontendThemeUnlock.unlocked && (
+              <FormField
+                control={form.control}
+                name='theme.frontend'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Frontend Theme')}</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className='w-full'>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value='default'>
+                          {t('Default (New Frontend)')}
+                        </SelectItem>
+                        <SelectItem value='classic'>
+                          {t('Classic (Legacy Frontend)')}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      {t(
+                        'Switch between the new frontend and the classic frontend. Changes take effect after page reload.'
+                      )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}
