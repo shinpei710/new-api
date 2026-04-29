@@ -49,7 +49,7 @@ jobs:
           if [ "$REQUESTED" = "latest-release" ]; then
             REF="$(git ls-remote --tags --refs upstream 'v*' \
               | awk '{ sub("refs/tags/", "", $2); print $2 }' \
-              | grep -Ev 'alpha|nightly|ai' \
+              | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-patch\.[0-9]+)?$' \
               | sort -V \
               | tail -n 1)"
             if [ -z "$REF" ]; then
