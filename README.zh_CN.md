@@ -7,6 +7,10 @@
 🍥 **新一代大模型网关与AI资产管理系统**
 
 <p align="center">
+  <strong>本 fork 是 QuantumNous/new-api 的 AI 修复版，主要用于修复 Codex/AI 工作流中遇到的问题并保留可验证改动。</strong>
+</p>
+
+<p align="center">
   简体中文 |
   <a href="./README.zh_TW.md">繁體中文</a> |
   <a href="./README.md">English</a> |

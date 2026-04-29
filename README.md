@@ -7,6 +7,10 @@
 🍥 **Next-Generation LLM Gateway and AI Asset Management System**
 
 <p align="center">
+  <strong>This fork is an AI-assisted fix edition of QuantumNous/new-api, focused on verified fixes for Codex/AI workflows.</strong>
+</p>
+
+<p align="center">
   <a href="./README.zh_CN.md">简体中文</a> |
   <a href="./README.zh_TW.md">繁體中文</a> |
   <strong>English</strong> |
