@@ -3,6 +3,10 @@ name: Fork Linux Release
 on:
   workflow_dispatch:
     inputs:
+      ref:
+        description: 'Git ref to build'
+        required: false
+        default: 'fix-codex-affinity-retry-and-version'
       version:
         description: 'Release version'
         required: false
@@ -21,6 +25,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
+          ref: ${{ inputs.ref || 'fix-codex-affinity-retry-and-version' }}
           fetch-depth: 0
 
       - name: Determine version
