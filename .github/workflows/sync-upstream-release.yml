@@ -1,0 +1,116 @@
+name: Sync Upstream Release
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      upstream_ref:
+        description: 'Upstream ref to merge: latest-release, main, or a tag like v0.13.2'
+        required: false
+        default: 'latest-release'
+
+permissions:
+  contents: write
+  issues: write
+
+env:
+  FORK_BRANCH: fix-codex-affinity-retry-and-version
+  UPSTREAM_REPO: https://github.com/QuantumNous/new-api.git
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fork branch
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ env.FORK_BRANCH }}
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch upstream
+        run: |
+          git remote add upstream "$UPSTREAM_REPO"
+          git fetch upstream --tags --prune
+
+      - name: Resolve upstream ref
+        id: resolve
+        run: |
+          REQUESTED="${{ inputs.upstream_ref }}"
+          if [ -z "$REQUESTED" ]; then
+            REQUESTED="latest-release"
+          fi
+
+          if [ "$REQUESTED" = "latest-release" ]; then
+            REF="$(git ls-remote --tags --refs upstream 'v*' \
+              | awk '{ sub("refs/tags/", "", $2); print $2 }' \
+              | grep -Ev 'alpha|nightly|ai' \
+              | sort -V \
+              | tail -n 1)"
+            if [ -z "$REF" ]; then
+              echo "::error::No upstream release tag found"
+              exit 1
+            fi
+            MERGE_REF="$REF"
+          elif [ "$REQUESTED" = "main" ]; then
+            REF="main"
+            MERGE_REF="upstream/main"
+          else
+            REF="$REQUESTED"
+            MERGE_REF="$REQUESTED"
+            if ! git rev-parse --verify "$MERGE_REF^{commit}" >/dev/null 2>&1; then
+              echo "::error::Upstream ref '$REQUESTED' was not found"
+              exit 1
+            fi
+          fi
+
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "merge_ref=$MERGE_REF" >> "$GITHUB_OUTPUT"
+          echo "Resolved upstream ref: $REF ($MERGE_REF)"
+
+      - name: Merge upstream ref
+        id: merge
+        run: |
+          BEFORE="$(git rev-parse HEAD)"
+          git merge --no-edit --no-ff "${{ steps.resolve.outputs.merge_ref }}"
+          AFTER="$(git rev-parse HEAD)"
+          if [ "$BEFORE" = "$AFTER" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Already up to date with ${{ steps.resolve.outputs.ref }}"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Merged ${{ steps.resolve.outputs.ref }}"
+          fi
+
+      - name: Push synced branch
+        if: steps.merge.outputs.changed == 'true'
+        run: git push origin "HEAD:$FORK_BRANCH"
+
+      - name: Write summary
+        run: |
+          {
+            echo "### Upstream sync"
+            echo ""
+            echo "- Fork branch: \`$FORK_BRANCH\`"
+            echo "- Upstream ref: \`${{ steps.resolve.outputs.ref }}\`"
+            echo "- Changed: \`${{ steps.merge.outputs.changed }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create conflict issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE="Upstream sync failed"
+          BODY="Automatic sync from QuantumNous/new-api failed on branch \`$FORK_BRANCH\`. Check workflow run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          EXISTING="$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number // ""')"
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+          else
+            gh issue create --title "$TITLE" --body "$BODY"
+          fi

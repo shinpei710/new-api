@@ -1,9 +1,6 @@
 name: Fork Linux Release
 
 on:
-  push:
-    branches:
-      - fix-codex-affinity-retry-and-version
   workflow_dispatch:
     inputs:
       version:
