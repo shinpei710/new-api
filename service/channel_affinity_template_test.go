@@ -176,6 +176,23 @@ func TestShouldSkipRetryAfterChannelAffinityFailure(t *testing.T) {
 	}
 }
 
+func TestDefaultCodexChannelAffinityAllowsRetry(t *testing.T) {
+	setting := operation_setting.GetChannelAffinitySetting()
+	require.NotNil(t, setting)
+
+	var codexRule *operation_setting.ChannelAffinityRule
+	for i := range setting.Rules {
+		rule := &setting.Rules[i]
+		if strings.EqualFold(strings.TrimSpace(rule.Name), "codex cli trace") {
+			codexRule = rule
+			break
+		}
+	}
+
+	require.NotNil(t, codexRule)
+	require.False(t, codexRule.SkipRetryOnFailure)
+}
+
 func TestChannelAffinityHitCodexTemplatePassHeadersEffective(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
